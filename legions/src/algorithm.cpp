@@ -1,0 +1,101 @@
+#include <CGAL/Gmpz.h>
+#include <CGAL/QP_functions.h>
+#include <CGAL/QP_models.h>
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+// choose input type (input coefficients must fit)
+typedef int IT;
+// choose exact type for solver (CGAL::Gmpz or CGAL::Gmpq)
+typedef CGAL::Gmpz ET;
+
+// program and solution types
+typedef CGAL::Quadratic_program<IT> Program;
+typedef CGAL::Quadratic_program_solution<ET> Solution;
+
+#define REP(i, n) for (int i = 0; i < n; ++i)
+
+double floor_to_double(const CGAL::Quotient<ET>& x) {
+  double a = std::floor(CGAL::to_double(x));
+  while (a > x) a -= 1;
+  while (a + 1 <= x) a += 1;
+  return a;
+}
+
+void testcase() {
+  long init_x, init_y;
+  int n;
+  cin >> init_x >> init_y >> n;
+
+  // create an LP with Ax <= b, lower bound 0 and no upper bounds
+  Program lp(CGAL::SMALLER, false, 0, false, 0);
+
+  const int X = 0;
+  const int Y = 1;
+  const int T = 2;
+  int index = 0;
+  REP(i, n) {
+    int a, b, c, v;
+    cin >> a >> b >> c >> v;
+    double norm = sqrt(pow(a, 2) + pow(b, 2)) * v;
+
+    // check sign of dist from cur line to initial point
+    bool sign = (a * init_x + b * init_y + c) > 0;
+
+    // add constraint, that we dont cross line
+    if (sign) {
+      lp.set_a(X, index, -a);
+      lp.set_a(Y, index, -b);
+      lp.set_b(index, c);
+    } else {
+      lp.set_a(X, index, a);
+      lp.set_a(Y, index, b);
+      lp.set_b(index, -c);
+    }
+    index++;
+
+    // add constraint that d is smaller than distance to cur line
+    if (sign) {
+      lp.set_a(X, index, -a);
+      lp.set_a(Y, index, -b);
+      lp.set_a(T, index, -norm);
+      lp.set_b(index, c);
+    } else {
+      lp.set_a(X, index, a);
+      lp.set_a(Y, index, b);
+      lp.set_a(T, index, -norm);
+      lp.set_b(index, -c);
+    }
+
+    index++;
+  }
+
+  lp.set_u(T, true, 0);
+  // objective function
+  lp.set_c(T, 1);
+
+  // solve the program, using ET as the exact type
+  Solution s = CGAL::solve_linear_program(lp, ET());
+  assert(s.solves_linear_program(lp));
+
+  // output solution
+  cout << setprecision(0);
+  std::cout << fixed << floor_to_double(CGAL::to_double(-s.objective_value()))
+            << endl;
+
+  return;
+}
+
+int main() {
+  std::ios_base::sync_with_stdio(false);
+  int t;
+  std::cin >> t;
+  for (int i = 0; i < t; ++i) testcase();
+}
