@@ -1,4 +1,4 @@
-# README
+# AlgorithmsLab AS19 ETHZ
 These are my solutions for the course "Algorithms Lab AS19" at ETHZ.
 World Cup did not achieve full points.
 
